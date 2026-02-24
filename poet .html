@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>右釘裝古籍翻頁 + 批量導入</title>
+  <style>
+    body { font-family:'Microsoft JhengHei', serif; background:#f0ebe0; }
+    .navigation { margin:20px; }
+    .book-container { width:800px; height:500px; margin:auto; border:1px solid #333; position:relative; }
+    .page { width:50%; height:100%; position:absolute; top:0; background:#f9f6f0; background-size:cover; }
+    .page-left { left:0; border-right:1px solid #ccc; }
+    .page-right { right:0; border-left:1px solid #ccc; }
+    .page-number {
+      position: absolute;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 14px;
+      color: #333;
+    }
+    #directorySelect {
+      display: none;
+      margin-left: 10px;
+      padding: 5px;
+      font-size: 14px;
+      max-height: 150px;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="navigation">
+    <button id="prevBtn">上一頁</button>
+    <button id="nextBtn">下一頁</button>
+    <button id="directoryBtn">目錄</button>
+    <select id="directorySelect"></select>
+    當前頁面: <span id="currentPageNum">封面</span> / <span id="totalPageNum">0</span>
+  </div>
+
+  <div class="book-container">
+    <div class="book" id="book"></div>
+  </div>
+
+  <script>
+    // 批量生成頁面圖片
+    const totalPages = 20; // ← 只要改這個數字即可
+    const pages = ['cover.jpg']; // 封面
+    for (let i = 1; i <= totalPages; i++) {
+      pages.push(`page${i}.jpg`);
+    }
+    pages.push('back-cover.jpg'); // 封底
+
+    const config = {
+      pages: pages,
+      directoryGroups:[
+        {
+          groupName:"第一卷",
+          items:[
+            {title:"卷一：春之頌",page:1},
+            {title:"卷二：夏之夢",page:3}
+          ]
+        },
+        {
+          groupName:"第二卷",
+          items:[
+            {title:"卷三：秋之思",page:5},
+            {title:"卷四：冬之韻",page:7}
+          ]
+        }
+      ],
+      currentState:{leftPage:null,rightPage:'封面',spreadIndex:0}
+    };
+
+    const book=document.getElementById('book');
+    const prevBtn=document.getElementById('prevBtn');
+    const nextBtn=document.getElementById('nextBtn');
+    const currentPageNum=document.getElementById('currentPageNum');
+    const totalPageNum=document.getElementById('totalPageNum');
+    const directoryBtn=document.getElementById('directoryBtn');
+    const directorySelect=document.getElementById('directorySelect');
+
+    const pageSpreads=[
+      {type:'cover',left:null,right:'封面'},
+      // 內頁會根據 totalPages 自動生成
+    ];
+
+    // 自動生成 pageSpreads
+    for (let i = 1; i <= totalPages; i += 2) {
+      pageSpreads.push({type:'pages',left:i+1,right:i});
+    }
+    pageSpreads.push({type:'backcover',left:null,right:'封底'});
+
+    function init(){
+      totalPageNum.textContent=config.pages.length-2;
+      renderSpread(0);
+      renderDirectorySelect();
+      updateButtonStates();
+    }
+
+    function renderSpread(index){
+      book.innerHTML='';
+      const spread=pageSpreads[index];
+      config.currentState={leftPage:spread.left,rightPage:spread.right,spreadIndex:index};
+      if(spread.type==='cover'){renderCover();}
+      else if(spread.type==='pages'){renderPages(spread.left,spread.right);}
+      else if(spread.type==='backcover'){renderBackCover();}
+    }
+
+    function renderCover(){
+      const left=document.createElement('div');
+      left.className='page page-left';
+      book.appendChild(left);
+      const right=createPageElement(0,'right','封面');
+      book.appendChild(right);
+      currentPageNum.textContent='封面';
+    }
+
+    function renderPages(leftNum,rightNum){
+      const left=createPageElement(leftNum+1,'left',leftNum);
+      const right=createPageElement(rightNum+1,'right',rightNum);
+      book.appendChild(left);
+      book.appendChild(right);
+      currentPageNum.textContent=`${rightNum}-${leftNum}`;
+    }
+
+    function renderBackCover(){
+      const left=document.createElement('div');
+      left.className='page page-left';
+      book.appendChild(left);
+      const right=createPageElement(config.pages.length-1,'right','封底');
+      book.appendChild(right);
+      currentPageNum.textContent='封底';
+    }
+
+    function createPageElement(index,pos,num){
+      const page=document.createElement('div');
+      page.className=`page page-${pos}`;
+      if(index>=0 && index<config.pages.length){
+        page.style.backgroundImage=`url(${config.pages[index]})`;
+      }
+      if(num){
+        const el=document.createElement('div');
+        el.className='page-number';
+        el.textContent=num;
+        page.appendChild(el);
+      }
+      return page;
+    }
+
+    function flipToNextPage(){
+      const idx=config.currentState.spreadIndex;
+      if(idx<pageSpreads.length-1){
+        renderSpread(idx+1);
+        updateButtonStates();
+      }
+    }
+    function flipToPrevPage(){
+      const idx=config.currentState.spreadIndex;
+      if(idx>0){
+        renderSpread(idx-1);
+        updateButtonStates();
+      }
+    }
+
+    function updateButtonStates(){
+      prevBtn.disabled=config.currentState.spreadIndex===0;
+      nextBtn.disabled=config.currentState.spreadIndex===pageSpreads.length-1;
+    }
+
+    prevBtn.addEventListener('click',flipToPrevPage);
+    nextBtn.addEventListener('click',flipToNextPage);
+
+    // 下拉選單目錄 + 分組 + 自動選中
+    function renderDirectorySelect() {
+      directorySelect.innerHTML = '';
+      config.directoryGroups.forEach(group => {
+        const optGroup = document.createElement('optgroup');
+        optGroup.label = group.groupName;
+        group.items.forEach(item => {
+          const option = document.createElement('option');
+          option.value = item.page;
+          option.textContent = `${item.title}（第${item.page}頁）`;
+
+          const currentText = currentPageNum.textContent;
+          if (currentText.includes(item.page)) {
+            option.selected = true;
+          }
+
+          optGroup.appendChild(option);
+        });
+        directorySelect.appendChild(optGroup);
+      });
+    }
+
+    directoryBtn.addEventListener('click', () => {
+      renderDirectorySelect();
+      directorySelect.style.display = directorySelect.style.display === 'none' ? 'inline-block' : 'none';
+    });
+
+    directorySelect.addEventListener('change', e => {
+      const pageNum = parseInt(e.target.value);
+      jumpToPageZh(pageNum);
+      directorySelect.style.display = 'none';
+    });
+
+    function jumpToPageZh(pageNum) {
+      let targetIndex = Math.ceil(pageNum/2); // 每兩頁一組
+      renderSpread(targetIndex);
+      updateButtonStates();
+    }
+
+    window.addEventListener('load', init);
+  </script>
+</body>
+</html>
