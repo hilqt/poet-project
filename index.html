@@ -42,25 +42,25 @@
     <div class="book" id="book"></div>
   </div>
 
-  <script>
+ <script>
   // GitHub 儲存庫路徑
   const githubRepoUrl = "https://raw.githubusercontent.com/hilqt/poet-project/main/lib/images/";
 
-  // 完整圖片清單（注意大小寫一致）
+  // 完整圖片清單（請確認大小寫與實際檔案一致）
   const pages = [
-    "封面.JPG","封面內.JPG","內頁1.JPG","內頁2.JPG","自序.JPG","目錄1.JPG","目錄2.JPG",
-    "p1.JPG","p2.JPG","p3.JPG","p4.JPG","p5.JPG","p6.JPG","p7.JPG","p8.JPG","p9.JPG","p10.JPG",
-    "p11.JPG","p12.JPG","p13.JPG","p14.JPG","p15.JPG","p16.JPG","p17.JPG","p18.JPG","p19.JPG","p20.JPG",
-    "p21.JPG","p22.JPG","p23.JPG","p24.JPG","p25.JPG","p26.JPG","p27.JPG","p28.JPG","p29.JPG","p30.JPG",
-    "p31.JPG","p32.JPG","p33.JPG","p34.JPG","p35.JPG","p36.JPG","p37.JPG","p38.JPG","p39.JPG","p40.JPG",
-    "p41.JPG","p42.JPG","封底內.JPG","封底.JPG"
+    "封面.jpg","封面內.jpg","內頁1.jpg","內頁2.jpg","自序.jpg","目錄1.jpg","目錄2.jpg",
+    "p1.jpg","p2.jpg","p3.jpg","p4.jpg","p5.jpg","p6.jpg","p7.jpg","p8.jpg","p9.jpg","p10.jpg",
+    "p11.jpg","p12.jpg","p13.jpg","p14.jpg","p15.jpg","p16.jpg","p17.jpg","p18.jpg","p19.jpg","p20.jpg",
+    "p21.jpg","p22.jpg","p23.jpg","p24.jpg","p25.jpg","p26.jpg","p27.jpg","p28.jpg","p29.jpg","p30.jpg",
+    "p31.jpg","p32.jpg","p33.jpg","p34.jpg","p35.jpg","p36.jpg","p37.jpg","p38.jpg","p39.jpg","p40.jpg",
+    "p41.jpg","p42.jpg","封底內.jpg","封底.jpg"
   ];
 
   const config = {
     pages: pages.map(p => githubRepoUrl + p),
     directory: [
-      {title:"卷一：詩",page:7},   // p1.JPG 在索引7
-      {title:"卷二：文",page:26},  // p27.JPG 在索引26
+      {title:"卷一：詩",page:7},   // p1.jpg 在索引7
+      {title:"卷二：文",page:26},  // p27.jpg 在索引26
     ],
     currentState:{leftPage:null,rightPage:'封面',spreadIndex:0},
     showPageNumbers:true
@@ -178,12 +178,13 @@
   directorySelect.addEventListener('change', e => {
     const pageIndex = parseInt(e.target.value);
     jumpToPageZh(pageIndex);
-    directorySelect.style.display = 'none'; // ← 跳頁後自動收起目錄
+    directorySelect.style.display = 'none'; // 跳頁後自動收起目錄
   });
 
+  // 修正跳頁邏輯：單數、雙數頁都正確落在跨頁
   function jumpToPageZh(pageIndex) {
-    let targetIndex = Math.floor(pageIndex/2);
-    if(pageIndex>=config.pages.length) targetIndex=pageSpreads.length-1;
+    let targetIndex = Math.floor((pageIndex-1)/2);
+    if(pageIndex >= config.pages.length) targetIndex = pageSpreads.length-1;
     renderSpread(targetIndex);
     updateButtonStates();
   }
@@ -198,5 +199,6 @@
 </script>
 </body>
 </html>
+
 
 
