@@ -43,10 +43,8 @@
   </div>
 
  <script>
-  // GitHub 儲存庫路徑
   const githubRepoUrl = "https://raw.githubusercontent.com/hilqt/poet-project/main/lib/images/";
 
-  // 完整圖片清單（請確認大小寫與實際檔案一致）
   const pages = [
     "封面.jpg","封面內.jpg","內頁1.jpg","內頁2.jpg","自序.jpg","目錄1.jpg","目錄2.jpg",
     "p1.jpg","p2.jpg","p3.jpg","p4.jpg","p5.jpg","p6.jpg","p7.jpg","p8.jpg","p9.jpg","p10.jpg",
@@ -58,10 +56,6 @@
 
   const config = {
     pages: pages.map(p => githubRepoUrl + p),
-    directory: [
-      {title:"卷一：詩",page:7},   // p1.jpg 在索引7
-      {title:"卷二：文",page:26},  // p27.jpg 在索引26
-    ],
     currentState:{leftPage:null,rightPage:'封面',spreadIndex:0},
     showPageNumbers:true
   };
@@ -69,27 +63,21 @@
   const book=document.getElementById('book');
   const prevBtn=document.getElementById('prevBtn');
   const nextBtn=document.getElementById('nextBtn');
-  const currentPageNum=document.getElementById('currentPageNum');
-  const totalPageNum=document.getElementById('totalPageNum');
   const directoryBtn=document.getElementById('directoryBtn');
-  const directorySelect=document.getElementById('directorySelect');
   const togglePageNumBtn=document.getElementById('togglePageNumBtn');
 
   let pageSpreads=[];
 
-  // 依照 pages 陣列生成跨頁
   function buildPageSpreads(){
     pageSpreads=[];
     for(let i=0;i<config.pages.length;i+=2){
-      pageSpreads.push({type:'pages',left:i+1,right:i});
+      pageSpreads.push({left:i+1,right:i});
     }
   }
 
   function init(){
     buildPageSpreads();
-    totalPageNum.textContent=config.pages.length;
     renderSpread(0);
-    renderDirectorySelect();
     updateButtonStates();
   }
 
@@ -101,24 +89,17 @@
   }
 
   function renderPages(leftNum,rightNum){
-    const left=createPageElement(leftNum,'left',leftNum);
-    const right=createPageElement(rightNum,'right',rightNum);
+    const left=createPageElement(leftNum,'left');
+    const right=createPageElement(rightNum,'right');
     book.appendChild(left);
     book.appendChild(right);
-    currentPageNum.textContent=`${rightNum}-${leftNum}`;
   }
 
-  function createPageElement(index,pos,num){
+  function createPageElement(index,pos){
     const page=document.createElement('div');
     page.className=`page page-${pos}`;
     if(index>=0 && index<config.pages.length){
       page.style.backgroundImage=`url(${config.pages[index]})`;
-    }
-    if(num && config.showPageNumbers){
-      const el=document.createElement('div');
-      el.className='page-number';
-      el.textContent=num;
-      page.appendChild(el);
     }
     return page;
   }
@@ -146,42 +127,46 @@
   prevBtn.addEventListener('click',flipToPrevPage);
   nextBtn.addEventListener('click',flipToNextPage);
 
-  // 下拉選單目錄：同時顯示卷別與所有頁碼
-  function renderDirectorySelect() {
-    directorySelect.innerHTML = '';
+  // 顯示目錄頁 + overlay
+  directoryBtn.addEventListener('click', () => {
+    renderSpread(2); // 目錄1.jpg + 目錄2.jpg (索引5、6 → spread=2)
+    showTocOverlay();
+  });
 
-    // 卷別
-    config.directory.forEach(item => {
-      const option = document.createElement('option');
-      option.value = item.page;
-      option.textContent = `${item.title}（第${item.page+1}頁）`;
-      directorySelect.appendChild(option);
-    });
+  function showTocOverlay() {
+    const overlay = document.createElement('div');
+    overlay.id = 'tocOverlay';
+    overlay.className = 'toc-overlay';
 
-    // 所有頁碼
-    config.pages.forEach((page, index) => {
-      const option = document.createElement('option');
-      option.value = index;
-      option.textContent = `第${index+1}頁`;
-      if (config.currentState.spreadIndex === Math.floor(index/2)) {
-        option.selected = true;
-      }
-      directorySelect.appendChild(option);
-    });
+    // 範例：在 overlay 上加按鈕（位置需依目錄圖片調整）
+    const btn1 = document.createElement('button');
+    btn1.textContent = "卷一：詩";
+    btn1.style.top = "50px";
+    btn1.style.left = "100px";
+    btn1.onclick = () => {
+      jumpToPageZh(7); // p1.jpg 索引
+      hideTocOverlay();
+    };
+    overlay.appendChild(btn1);
+
+    const btn2 = document.createElement('button');
+    btn2.textContent = "卷二：文";
+    btn2.style.top = "150px";
+    btn2.style.left = "100px";
+    btn2.onclick = () => {
+      jumpToPageZh(26); // p27.jpg 索引
+      hideTocOverlay();
+    };
+    overlay.appendChild(btn2);
+
+    book.appendChild(overlay);
   }
 
-  directoryBtn.addEventListener('click', () => {
-    renderDirectorySelect();
-    directorySelect.style.display = directorySelect.style.display === 'none' ? 'inline-block' : 'none';
-  });
+  function hideTocOverlay() {
+    const overlay = document.getElementById('tocOverlay');
+    if (overlay) overlay.remove();
+  }
 
-  directorySelect.addEventListener('change', e => {
-    const pageIndex = parseInt(e.target.value);
-    jumpToPageZh(pageIndex);
-    directorySelect.style.display = 'none'; // 跳頁後自動收起目錄
-  });
-
-  // 修正跳頁邏輯：單數、雙數頁都正確落在跨頁
   function jumpToPageZh(pageIndex) {
     let targetIndex = Math.floor((pageIndex-1)/2);
     if(pageIndex >= config.pages.length) targetIndex = pageSpreads.length-1;
@@ -189,7 +174,6 @@
     updateButtonStates();
   }
 
-  // 顯示/隱藏頁碼
   togglePageNumBtn.addEventListener('click', () => {
     config.showPageNumbers=!config.showPageNumbers;
     renderSpread(config.currentState.spreadIndex);
@@ -199,6 +183,7 @@
 </script>
 </body>
 </html>
+
 
 
 
