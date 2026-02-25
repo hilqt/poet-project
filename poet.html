@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>右釘裝古籍翻頁 + 下拉式目錄優化</title>
+  <style>
+    body { font-family:'Microsoft JhengHei', serif; background:#f0ebe0; }
+    .navigation { margin:20px; }
+    .book-container { width:800px; height:500px; margin:auto; border:1px solid #333; position:relative; }
+    .page { width:50%; height:100%; position:absolute; top:0; background:#f9f6f0; background-size:cover; }
+    .page-left { left:0; border-right:1px solid #ccc; }
+    .page-right { right:0; border-left:1px solid #ccc; }
+    .page-number {
+      position: absolute;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 14px;
+      color: #333;
+    }
+    #directorySelect {
+      display: none;
+      margin-left: 10px;
+      padding: 5px;
+      font-size: 14px;
+      max-height: 150px;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="navigation">
+    <button id="prevBtn">上一頁</button>
+    <button id="nextBtn">下一頁</button>
+    <button id="directoryBtn">目錄</button>
+    <button id="togglePageNumBtn">顯示/隱藏頁碼</button>
+    <select id="directorySelect"></select>
+    當前頁面: <span id="currentPageNum">封面</span> / <span id="totalPageNum">0</span>
+  </div>
+
+  <div class="book-container">
+    <div class="book" id="book"></div>
+  </div>
+
+  <script>
+  // GitHub 儲存庫路徑 (請替換成你自己的)
+  const githubRepoUrl = "https://raw.githubusercontent.com/hilqy/poet-project/main/lib/images/";
+
+  // 完整圖片清單（依照你提供的命名順序）
+  const pages = [
+    "封面.jpg",
+    "封面內.jpg",
+    "內頁1.jpg",
+    "內頁2.jpg",
+    "自序.jpg",
+    "目錄1.jpg",
+    "目錄2.jpg",
+    "p1.jpg","p2.jpg","p3.jpg","p4.jpg","p5.jpg","p6.jpg","p7.jpg","p8.jpg","p9.jpg","p10.jpg",
+    "p11.jpg","p12.jpg","p13.jpg","p14.jpg","p15.jpg","p16.jpg","p17.jpg","p18.jpg","p19.jpg","p20.jpg",
+    "p21.jpg","p22.jpg","p23.jpg","p24.jpg","p25.jpg","p26.jpg","p27.jpg","p28.jpg","p29.jpg","p30.jpg",
+    "p31.jpg","p32.jpg","p33.jpg","p34.jpg","p35.jpg","p36.jpg","p37.jpg","p38.jpg","p39.jpg","p40.jpg",
+    "p41.jpg","p42.jpg",
+    "封底內.jpg",
+    "封底.jpg"
+  ];
+
+  const config = {
+    pages: pages.map(p => githubRepoUrl + p),
+    directory: [
+      {title:"卷一：詩",page:1},   // 假設 p1 在第8頁，依實際需要調整
+      {title:"卷二：文",page:27}, // 依實際頁碼調整
+    ],
+    currentState:{leftPage:null,rightPage:'封面',spreadIndex:0},
+    showPageNumbers:true
+  };
+
+  const book=document.getElementById('book');
+  const prevBtn=document.getElementById('prevBtn');
+  const nextBtn=document.getElementById('nextBtn');
+  const currentPageNum=document.getElementById('currentPageNum');
+  const totalPageNum=document.getElementById('totalPageNum');
+  const directoryBtn=document.getElementById('directoryBtn');
+  const directorySelect=document.getElementById('directorySelect');
+  const togglePageNumBtn=document.getElementById('togglePageNumBtn');
+
+  let pageSpreads=[];
+
+  // 依照 pages 陣列生成跨頁
+  function buildPageSpreads(){
+    pageSpreads=[];
+    for(let i=0;i<config.pages.length;i+=2){
+      pageSpreads.push({type:'pages',left:i+1,right:i});
+    }
+  }
+
+  function init(){
+    buildPageSpreads();
+    totalPageNum.textContent=config.pages.length;
+    renderSpread(0);
+    renderDirectorySelect();
+    updateButtonStates();
+  }
+
+  function renderSpread(index){
+    book.innerHTML='';
+    const spread=pageSpreads[index];
+    config.currentState={leftPage:spread.left,rightPage:spread.right,spreadIndex:index};
+    renderPages(spread.left,spread.right);
+  }
+
+  function renderPages(leftNum,rightNum){
+    const left=createPageElement(leftNum,'left',leftNum);
+    const right=createPageElement(rightNum,'right',rightNum);
+    book.appendChild(left);
+    book.appendChild(right);
+    currentPageNum.textContent=`${rightNum}-${leftNum}`;
+  }
+
+  function createPageElement(index,pos,num){
+    const page=document.createElement('div');
+    page.className=`page page-${pos}`;
+    if(index>=0 && index<config.pages.length){
+      page.style.backgroundImage=`url(${config.pages[index]})`;
+    }
+    if(num && config.showPageNumbers){
+      const el=document.createElement('div');
+      el.className='page-number';
+      el.textContent=num;
+      page.appendChild(el);
+    }
+    return page;
+  }
+
+  function flipToNextPage(){
+    const idx=config.currentState.spreadIndex;
+    if(idx<pageSpreads.length-1){
+      renderSpread(idx+1);
+      updateButtonStates();
+    }
+  }
+  function flipToPrevPage(){
+    const idx=config.currentState.spreadIndex;
+    if(idx>0){
+      renderSpread(idx-1);
+      updateButtonStates();
+    }
+  }
+
+  function updateButtonStates(){
+    prevBtn.disabled=config.currentState.spreadIndex===0;
+    nextBtn.disabled=config.currentState.spreadIndex===pageSpreads.length-1;
+  }
+
+  prevBtn.addEventListener('click',flipToPrevPage);
+  nextBtn.addEventListener('click',flipToNextPage);
+
+  // 下拉選單目錄
+  function renderDirectorySelect() {
+    directorySelect.innerHTML = '';
+    config.directory.forEach(item => {
+      const option = document.createElement('option');
+      option.value = item.page;
+      option.textContent = `${item.title}（第${item.page}頁）`;
+      const currentText = currentPageNum.textContent;
+      if (currentText.includes(item.page)) {
+        option.selected = true;
+      }
+      directorySelect.appendChild(option);
+    });
+  }
+
+  directoryBtn.addEventListener('click', () => {
+    renderDirectorySelect();
+    directorySelect.style.display = directorySelect.style.display === 'none' ? 'inline-block' : 'none';
+  });
+
+  directorySelect.addEventListener('change', e => {
+    const pageNum = parseInt(e.target.value);
+    jumpToPageZh(pageNum);
+    directorySelect.style.display = 'none';
+  });
+
+  function jumpToPageZh(pageNum) {
+    let targetIndex = Math.floor(pageNum/2);
+    if(pageNum>=config.pages.length) targetIndex=pageSpreads.length-1;
+    renderSpread(targetIndex);
+    updateButtonStates();
+  }
+
+  // 顯示/隱藏頁碼
+  togglePageNumBtn.addEventListener('click', () => {
+    config.showPageNumbers=!config.showPageNumbers;
+    renderSpread(config.currentState.spreadIndex);
+  });
+
+  window.addEventListener('load', init);
+</script>
+
+</body>
+</html>
